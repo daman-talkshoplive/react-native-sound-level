@@ -38,7 +38,7 @@ class RNSoundLevelModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void start(Promise promise) {
+  public void start(int monitorInterval, int samplingRate, Promise promise) {
     if (isRecording) {
       logAndRejectPromise(promise, "INVALID_STATE", "Please call stop before starting");
       return;
@@ -49,13 +49,13 @@ class RNSoundLevelModule extends ReactContextBaseJavaModule {
       recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
       recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
       recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
-      recorder.setAudioSamplingRate(22050);
+      recorder.setAudioSamplingRate(samplingRate);
       recorder.setAudioChannels(1);
       recorder.setAudioEncodingBitRate(32000);
       recorder.setOutputFile(this.getReactApplicationContext().getCacheDir().getAbsolutePath() + "/soundlevel");
     }
     catch(final Exception e) {
-      logAndRejectPromise(promise, "COULDNT_CONFIGURE_MEDIA_RECORDER" , "Make sure you've added RECORD_AUDIO permission to your AndroidManifest.xml file " + e.getMessage());
+      logAndRejectPromise(promise, "COULDNT_CONFIGURE_MEDIA_RECORDER" , "Make sure: android.permission.RECORD_AUDIO is added to AndroidManifest.xml, user permission to use the microphone is acquired. " + e.getMessage());
       return;
     }
 
@@ -69,7 +69,7 @@ class RNSoundLevelModule extends ReactContextBaseJavaModule {
 
     frameId = 0;
     isRecording = true;
-    startTimer();
+    startTimer(monitorInterval);
     promise.resolve(true);
   }
 
@@ -98,7 +98,7 @@ class RNSoundLevelModule extends ReactContextBaseJavaModule {
     promise.resolve(true);
   }
 
-  private void startTimer() {
+  private void startTimer(int monitorInterval) {
     timer = new Timer();
     timer.scheduleAtFixedRate(new TimerTask() {
       @Override
@@ -118,7 +118,7 @@ class RNSoundLevelModule extends ReactContextBaseJavaModule {
 
           sendEvent("frame", body);
       }
-    }, 0, 250);
+    }, 0, monitorInterval);
   }
 
   private void stopTimer() {
